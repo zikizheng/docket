@@ -250,9 +250,14 @@ export default function App() {
             <div className="section-header">
                 <h2>Processed invoices</h2>
                 {invoices.length > 0 && (
-                    <button type="button" className="clear-all-button" onClick={handleClearAll}>
-                        Clear all
-                    </button>
+                    <div className="header-actions">
+                        <a className="export-csv-button" href="/api/invoices/export" download>
+                            Export CSV
+                        </a>
+                        <button type="button" className="clear-all-button" onClick={handleClearAll}>
+                            Clear all
+                        </button>
+                    </div>
                 )}
             </div>
             {invoices.length === 0 ? (
@@ -283,16 +288,6 @@ export default function App() {
                                                 ))}
                                             </ul>
                                         )}
-                                    </td>
-                                    <td data-label="">
-                                        <button
-                                            type="button"
-                                            className="delete-row-button"
-                                            aria-label="Delete invoice"
-                                            onClick={() => handleDelete(inv.id)}
-                                        >
-                                            Delete
-                                        </button>
                                     </td>
                                     <td data-label="">
                                         <button

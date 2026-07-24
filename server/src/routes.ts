@@ -3,7 +3,7 @@ import type { Invoice, AbnRecord } from "../../shared/types.ts";
 import { isValidAbn } from "../../shared/abn.ts";
 import { verifyInvoice } from "./rules.ts";
 import { HttpAbrClient, StubAbrClient, type AbrClient } from "./abrClient.ts";
-import { saveInvoice, listInvoices, deleteInvoice, clearInvoices } from "./db.ts";
+import { saveInvoice, listInvoices, deleteInvoice, clearInvoices, exportInvoicesCsv } from "./db.ts";
 import { StubExtractor, TextractExtractor, type InvoiceExtractor } from "./extractor.ts";
 import { consumeExtractionQuota, consumeAbrLookupQuota, remainingQuota } from "./quota.ts";
 
@@ -68,6 +68,15 @@ export function registerRoutes(app: FastifyInstance) {
     });
 
     app.get("/api/invoices", async () => listInvoices());
+
+    app.get("/api/invoices/export", async (_request, reply) => {
+        const csv = exportInvoicesCsv();
+        const date = new Date().toISOString().slice(0, 10);
+        return reply
+            .type("text/csv; charset=utf-8")
+            .header("Content-Disposition", `attachment; filename="invoices-${date}.csv"`)
+            .send(csv);
+    });
 
     app.delete("/api/invoices/:id", {
         config: { rateLimit: { max: 20, timeWindow: "1 minute" } },

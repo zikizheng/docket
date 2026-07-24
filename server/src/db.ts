@@ -81,3 +81,39 @@ export function clearInvoices(): number {
     const info = clearStmt.run();
     return info.changes;
 }
+
+const exportStmt = db.prepare(`SELECT * FROM invoices ORDER BY id DESC`);
+
+const CSV_HEADERS = [
+    "ID", "Supplier Name", "Registered Name", "ABN", "Invoice Number",
+    "Invoice Date", "Amount", "GST Charged", "Decision", "Flags", "Checked At",
+];
+
+function csvCell(value: string): string {
+    const safe = /^[=+\-@]/.test(value) ? `'${value}` : value;
+    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+export function exportInvoicesCsv(): string {
+    const rows = exportStmt.all() as any[];
+    const lines = [CSV_HEADERS.map(csvCell).join(",")];
+    for (const row of rows) {
+        const flags = (JSON.parse(row.flags) as { message: string }[])
+            .map((f) => f.message)
+            .join("; ");
+        lines.push([
+            row.id,
+            row.supplier_name,
+            row.registered_name ?? "",
+            row.abn,
+            row.invoice_number ?? "",
+            row.invoice_date ?? "",
+            row.amount,
+            row.gst_charged === 1 ? "Yes" : "No",
+            row.decision,
+            flags,
+            row.checked_at,
+        ].map((v) => csvCell(String(v))).join(","));
+    }
+    return lines.join("\r\n");
+}

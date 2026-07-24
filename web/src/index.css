@@ -160,6 +160,11 @@ h2 {
     margin-bottom: 0;
 }
 
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .clear-all-button {
     min-height: 36px;
     padding: 6px 14px;
@@ -171,6 +176,24 @@ h2 {
 
 .clear-all-button:hover {
     border-color: var(--red);
+}
+
+.export-csv-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 14px;
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.export-csv-button:hover {
+    border-color: var(--text);
 }
 
 .delete-row-button {
