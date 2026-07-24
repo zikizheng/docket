@@ -9,8 +9,8 @@ and returns a clear **approved / review / rejected** decision.
 
 ## Why I built this
 
-While working in support at CampaignAgent — a pay-later provider for
-property vendors — part of my job was manually verifying supplier
+While working in support at CampaignAgent, a pay-later provider for
+property vendors, part of my job was manually verifying supplier
 invoices during loan approvals. This tool is intended to automate those checks.
 
 ## What it does
@@ -34,11 +34,13 @@ invoices during loan approvals. This tool is intended to automate those checks.
   expense analysis, pre-filling the form for review
 - Falls back to a stub extractor for local development when no AWS
   credentials are configured
-- A daily extraction quota keeps the (billed) Textract calls bounded for
-  demo/hosted use
+- Daily extraction quotas (global and per-IP) keep the (billed) Textract
+  calls bounded for demo/hosted use; a daily cap on ABR lookups protects
+  the register API the same way
 
 **History**
 - Verified invoices are stored (SQLite) and listed, with delete/clear support
+- Export the full history as a CSV download
 
 ## Architecture
 
@@ -63,10 +65,11 @@ TypeScript, Node 24, Fastify, better-sqlite3, AWS Textract, React 19, Vite.
 | --- | --- |
 | `POST /api/invoices` | Verify an invoice and store the result |
 | `GET /api/invoices` | List stored invoices |
+| `GET /api/invoices/export` | Download all stored invoices as CSV |
 | `DELETE /api/invoices/:id` | Delete one invoice |
 | `DELETE /api/invoices` | Clear all invoices |
 | `POST /api/extract` | Upload a PDF/PNG/JPEG and extract a draft invoice |
-| `GET /api/quota` | Remaining daily extractions |
+| `GET /api/quota` | Remaining daily extractions (global) |
 
 ## Getting started
 
