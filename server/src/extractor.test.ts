@@ -85,3 +85,30 @@ test("parses dash-separated textual dates", () => {
     assert.equal(parseInvoiceDate("13-JUL-2026"), "2026-07-13");
     assert.equal(parseInvoiceDate("Date\n13-Jul-2026"), "2026-07-13");
 });
+
+test("prefers the vendor name nearest the top of the page over a higher-confidence decoy lower down", () => {
+    // Reproduces a real Textract response: a legal entity name quoted inside payment
+    // instructions ("...pay via BPAY, referencing Acme Holdings Pty Ltd") OCR'd more cleanly
+    // than the letterhead business name, and out-scored it on confidence alone.
+    const response = {
+        ExpenseDocuments: [{
+            SummaryFields: [
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "Riverside Physio Clinic", Confidence: 87.75, Geometry: { BoundingBox: { Top: 0.164 } } } },
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "Acme Holdings Pty Ltd", Confidence: 96.10, Geometry: { BoundingBox: { Top: 0.584 } } } },
+            ],
+        }],
+    };
+    assert.equal(mapExpenseResponse(response).supplierName, "Riverside Physio Clinic");
+});
+
+test("falls back to confidence when the topmost vendor-name candidate is too low to trust", () => {
+    const response = {
+        ExpenseDocuments: [{
+            SummaryFields: [
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "###unreadable###", Confidence: 22, Geometry: { BoundingBox: { Top: 0.05 } } } },
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "Riverside Physio Clinic", Confidence: 91, Geometry: { BoundingBox: { Top: 0.5 } } } },
+            ],
+        }],
+    };
+    assert.equal(mapExpenseResponse(response).supplierName, "Riverside Physio Clinic");
+});

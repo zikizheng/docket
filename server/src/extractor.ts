@@ -5,6 +5,13 @@ import { parse, isValid, format } from "date-fns";
 
 const CONFIDENCE_THRESHOLD = 90;
 
+/**
+ * Below this, a field reading is treated as noise rather than a real (if imperfect) OCR
+ * result. Low enough that a correctly-identified vendor name (which often sits next to a
+ * logo/stylised header and scores lower than plain body text) doesn't get discarded.
+ */
+const MIN_TRUSTWORTHY_CONFIDENCE = 50;
+
 export interface InvoiceExtractor {
     extract(file: Buffer): Promise<DraftInvoice>;
 }
@@ -48,7 +55,7 @@ export function mapExpenseResponse(response: any): DraftInvoice {
         for (const type of types) {
             const matches = summary
                 .filter((f) => f?.Type?.Text === type && f?.ValueDetection?.Text?.trim())
-                // .sort((a, b) => (b.ValueDetection.Confidence ?? 0) - (a.ValueDetection.Confidence ?? 0));
+                .sort((a, b) => (b.ValueDetection.Confidence ?? 0) - (a.ValueDetection.Confidence ?? 0));
             if (matches.length > 0) {
                 return {
                     text: matches[0].ValueDetection.Text.trim(),
@@ -59,7 +66,33 @@ export function mapExpenseResponse(response: any): DraftInvoice {
         return null;
     };
 
-    const supplierField = bestField(["VENDOR_NAME", "SUPPLIER_NAME"]);
+    /**
+     * Like bestField, but for fields where the correct candidate is conventionally the one
+     * nearest the top of the page (the vendor name, printed in the letterhead). Textract's
+     * per-candidate confidence reflects OCR fidelity, not which candidate is semantically
+     * correct — a cleanly-printed decoy elsewhere on the page (e.g. a legal entity name quoted
+     * in payment instructions) can out-score the real header, so position wins by default,
+     * and confidence only breaks in when the topmost candidate is too garbled to trust at all.
+     */
+    const bestFieldByPosition = (types: string[]): { text: string; confidence: number } | null => {
+        const top = (f: any): number => f?.ValueDetection?.Geometry?.BoundingBox?.Top ?? Number.POSITIVE_INFINITY;
+        const confidence = (f: any): number => f?.ValueDetection?.Confidence ?? 0;
+
+        for (const type of types) {
+            const matches = summary.filter((f) => f?.Type?.Text === type && f?.ValueDetection?.Text?.trim());
+            if (matches.length === 0) continue;
+
+            const trustworthy = matches.filter((f) => confidence(f) >= MIN_TRUSTWORTHY_CONFIDENCE);
+            const ranked = trustworthy.length > 0
+                ? trustworthy.sort((a, b) => top(a) - top(b))
+                : matches.sort((a, b) => confidence(b) - confidence(a));
+
+            return { text: ranked[0].ValueDetection.Text.trim(), confidence: confidence(ranked[0]) };
+        }
+        return null;
+    };
+
+    const supplierField = bestFieldByPosition(["VENDOR_NAME", "SUPPLIER_NAME"]);
     const totalField = bestField(["TOTAL", "AMOUNT_DUE", "AMOUNT_PAID"]);
     const gstField = bestField(["TAX", "GST"]);
     const invoiceNumberField = bestField(["INVOICE_RECEIPT_ID"]);
