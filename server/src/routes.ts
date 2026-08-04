@@ -131,7 +131,7 @@ export function registerRoutes(app: FastifyInstance) {
         }
         try {
             const draft = await extractor.extract(buffer);
-            reply.header("X-Quota-Remaining", String(remainingQuota()));
+            reply.header("X-Quota-Remaining", String(remainingQuota(request.ip)));
             return reply.send(draft);;
         } catch (err) {
             request.log.error(err);
@@ -139,5 +139,5 @@ export function registerRoutes(app: FastifyInstance) {
         }
     })
 
-    app.get("/api/quota", { schema: schemas.quota }, async () => ({ remaining: remainingQuota() }));
+    app.get("/api/quota", { schema: schemas.quota }, async (request) => ({ remaining: remainingQuota(request.ip) }));
 }

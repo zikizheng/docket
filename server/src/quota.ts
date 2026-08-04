@@ -1,7 +1,7 @@
 import { db } from "./db.ts";
 
 const EXTRACTION_DAILY_LIMIT = Number(process.env.MAX_EXTRACTIONS_PER_DAY ?? 25);
-const EXTRACTION_PER_IP_DAILY_LIMIT = Number(process.env.MAX_EXTRACTIONS_PER_IP_PER_DAY ?? 5);
+const EXTRACTION_PER_IP_DAILY_LIMIT = Number(process.env.MAX_EXTRACTIONS_PER_IP_PER_DAY ?? 10);
 const ABR_LOOKUP_DAILY_LIMIT = Number(process.env.MAX_ABR_LOOKUPS_PER_DAY ?? 200);
 
 db.exec(`
@@ -39,8 +39,11 @@ export function consumeExtractionQuota(ip: string): boolean {
     return true;
 }
 
-export function remainingQuota(): number {
-    return Math.max(0, EXTRACTION_DAILY_LIMIT - count("extract", "global"));
+/** The lower of the global and per-IP allowances: whichever one the caller will actually hit next. */
+export function remainingQuota(ip: string): number {
+    const globalRemaining = EXTRACTION_DAILY_LIMIT - count("extract", "global");
+    const ipRemaining = EXTRACTION_PER_IP_DAILY_LIMIT - count("extract", ip);
+    return Math.max(0, Math.min(globalRemaining, ipRemaining));
 }
 
 export function consumeAbrLookupQuota(): boolean {

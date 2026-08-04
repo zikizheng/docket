@@ -49,11 +49,16 @@ const error = {
     required: ["error"],
 } as const;
 
-/** Like error, but tagged so the client can tell a real quota exhaustion apart from a plain rate-limit 429. */
+/**
+ * Like error, but with an optional tag the client uses to tell a real quota exhaustion apart
+ * from a plain rate-limit 429. code must stay optional: Fastify's own rate-limit plugin can
+ * also produce a 429 on this route, and its response has no code field — if it were required,
+ * that response would fail schema serialization and come back as a 500 instead of a 429.
+ */
 const quotaError = {
     type: "object",
     properties: { error: { type: "string" }, code: { type: "string" } },
-    required: ["error", "code"],
+    required: ["error"],
 } as const;
 
 export const schemas = {
