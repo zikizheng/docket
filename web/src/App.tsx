@@ -130,7 +130,7 @@ export default function App() {
                     {sourceFile && (
                         <p className="source-note">
                             Pre-filled from <strong>{sourceFile}</strong>
-                            {needsReview.length > 0 && "check the highlighted fields before verifying."}
+                            {needsReview.length > 0 && " check the highlighted fields before verifying."}
                         </p>
                     )}
 
