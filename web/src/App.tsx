@@ -1,5 +1,5 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
-import type { Invoice, StoredInvoice, DraftInvoice } from "../../shared/types";
+import type { Invoice, StoredInvoice, DraftInvoice, Decision } from "../../shared/types";
 import { verifyInvoice, listInvoices, deleteInvoice, clearInvoices } from "./api";
 import "./App.css";
 import { isValidAbn } from './../../shared/abn';
@@ -17,9 +17,11 @@ export default function App() {
     const [touched, setTouched] = useState<Partial<Record<keyof Invoice, boolean>>>({});
     const [needsReview, setNeedsReview] = useState<string[]>([]);
     const [sourceFile, setSourceFile] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const errors = validate(form);
     const isValid = Object.keys(errors).length === 0;
+    const totals = summarizeInvoices(invoices);
 
     useEffect(() => {
         listInvoices().then(setInvoices).catch((e) => setError(e.message));
@@ -89,6 +91,22 @@ export default function App() {
         }
     }
 
+    async function handleCopyList() {
+        const lines = invoices.map((inv) => {
+            const flags = inv.flags.length === 0 ? "-" : inv.flags.map((f) => f.message).join(" | ");
+            return `Supplier Name: ${inv.supplierName} - Amount: $${inv.amount.toFixed(2)}\nFlags: ${flags}\n`;
+        });
+        const text = [...lines, "", `Total sum: $${totals.grand.amount.toFixed(2)}`].join("\n");
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setError("Couldn't copy to clipboard.");
+        }
+    }
+
     return (
         <main>
             <section className="panel panel-center" id="hero">
@@ -130,7 +148,7 @@ export default function App() {
                     {sourceFile && (
                         <p className="source-note">
                             Pre-filled from <strong>{sourceFile}</strong>
-                            {needsReview.length > 0 && " check the highlighted fields before verifying."}
+                            {needsReview.length > 0 && "check the highlighted fields before verifying."}
                         </p>
                     )}
 
@@ -263,6 +281,7 @@ export default function App() {
             {invoices.length === 0 ? (
                 <p className="empty"> Nothing verified yet.</p>
             ) : (
+                <>
                 <div className="tablescroll">
                     <table className="card">
                         <thead>
@@ -276,7 +295,7 @@ export default function App() {
                                     <td data-label="ABN">{inv.abn}</td>
                                     <td data-label="Invoice Number">{inv.invoiceNumber ?? <span className="muted">-</span>}</td>
                                     <td data-label="Invoice Date">{inv.invoiceDate ?? <span className="muted">-</span>}</td>
-                                    <td data-label="Amount">{inv.amount.toFixed(2)}</td>
+                                    <td data-label="Amount">{"$" + inv.amount.toFixed(2)}</td>
                                     <td data-label="Decision"><span className={`badge badge-${inv.decision}`}>{inv.decision}</span></td>
                                     <td data-label="Flags">
                                         {inv.flags.length === 0 ? (
@@ -304,11 +323,73 @@ export default function App() {
                         </tbody>
                     </table>
                 </div>
+                <div className="card totals-card">
+                    <table className="totals-table">
+                        <thead>
+                            <tr><th>Decision</th><th>Count</th><th>Amount</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span className="badge badge-approved">approved</span></td>
+                                <td>{totals.approved.count}</td>
+                                <td>${totals.approved.amount.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td><span className="badge badge-review">review</span></td>
+                                <td>{totals.review.count}</td>
+                                <td>${totals.review.amount.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td><span className="badge badge-rejected">rejected</span></td>
+                                <td>{totals.rejected.count}</td>
+                                <td>${totals.rejected.amount.toFixed(2)}</td>
+                            </tr>
+                            <tr className="totals-grand-row">
+                                <td>Total</td>
+                                <td>{totals.grand.count}</td>
+                                <td>${totals.grand.amount.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div className="totals-card-footer">
+                        <button
+                            type="button"
+                            className="copy-list-button"
+                            onClick={handleCopyList}
+                            aria-label="Copy list to clipboard"
+                            title="Copy list to clipboard"
+                        >
+                            {copied ? "✓" : "📋"}
+                        </button>
+                    </div>
+                </div>
+                </>
             )}
                 </div>
             </section>
         </main>
     )
+}
+
+interface DecisionTotal {
+    count: number;
+    amount: number;
+}
+
+function summarizeInvoices(invoices: StoredInvoice[]): Record<Decision, DecisionTotal> & { grand: DecisionTotal } {
+    const totals = {
+        approved: { count: 0, amount: 0 },
+        review: { count: 0, amount: 0 },
+        rejected: { count: 0, amount: 0 },
+        grand: { count: 0, amount: 0 },
+    };
+    for (const inv of invoices) {
+        totals[inv.decision].count += 1;
+        totals[inv.decision].amount += inv.amount;
+        totals.grand.count += 1;
+        totals.grand.amount += inv.amount;
+    }
+    return totals;
 }
 
 function validate(form: Invoice): FieldErrors {

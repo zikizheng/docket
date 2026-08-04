@@ -154,6 +154,7 @@ h2 {
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
+    margin-bottom: 10px;
 }
 
 .section-header h2 {
@@ -492,4 +493,84 @@ input[type=number]::-webkit-outer-spin-button {
 .dropzone-disabled {
   opacity: 0.6;
   border-style: solid;
+}
+
+.totals-card {
+    margin-top: 16px;
+}
+
+.totals-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.copy-list-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.copy-list-button:hover {
+    border-color: var(--text);
+}
+
+.totals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.totals-table th,
+.totals-table td {
+    padding: 6px 0;
+    font-size: 14px;
+    text-align: right;
+}
+
+.totals-table th:first-child,
+.totals-table td:first-child {
+    text-align: left;
+}
+
+.totals-table th:nth-child(2),
+.totals-table td:nth-child(2),
+.totals-table th:nth-child(3),
+.totals-table td:nth-child(3) {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.totals-table th:nth-child(2),
+.totals-table td:nth-child(2) {
+    padding-right: 48px;
+}
+
+.totals-table th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.totals-table td {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.totals-grand-row td {
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
 }
