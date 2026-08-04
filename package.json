@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "author": "Ziki Zheng",
-  "license": "ISC",
+  "license": "MIT",
   "scripts": {
     "dev:server": "npm --prefix server run dev",
     "test:server": "npm test --prefix server",

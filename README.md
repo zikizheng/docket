@@ -94,3 +94,7 @@ for the SQLite database.
 
 Uses synthetic invoice data only; ABNs are validated against real,
 public ABR records. No real customer data is used.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
