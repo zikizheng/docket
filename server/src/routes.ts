@@ -6,6 +6,7 @@ import { HttpAbrClient, StubAbrClient, type AbrClient } from "./abrClient.ts";
 import { saveInvoice, listInvoices, deleteInvoice, clearInvoices, exportInvoicesCsv } from "./db.ts";
 import { StubExtractor, TextractExtractor, type InvoiceExtractor } from "./extractor.ts";
 import { consumeExtractionQuota, consumeAbrLookupQuota, remainingQuota } from "./quota.ts";
+import { schemas } from "./schemas.ts";
 
 const extractor: InvoiceExtractor = process.env.AWS_ACCESS_KEY_ID
     ? new TextractExtractor(process.env.AWS_REGION ?? "ap-southeast-2")
@@ -26,6 +27,7 @@ const client: AbrClient =
 export function registerRoutes(app: FastifyInstance) {
     app.post("/api/invoices", {
         config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+        schema: schemas.createInvoice,
     }, async (request, reply) => {
         const invoice = request.body as Invoice;
 
@@ -67,7 +69,7 @@ export function registerRoutes(app: FastifyInstance) {
         return reply.send(stored);
     });
 
-    app.get("/api/invoices", async () => listInvoices());
+    app.get("/api/invoices", { schema: schemas.listInvoices }, async () => listInvoices());
 
     app.get("/api/invoices/export", async (_request, reply) => {
         const csv = exportInvoicesCsv();
@@ -80,6 +82,7 @@ export function registerRoutes(app: FastifyInstance) {
 
     app.delete("/api/invoices/:id", {
         config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+        schema: schemas.deleteInvoice,
     }, async (request, reply) => {
         const id = Number((request.params as { id: string }).id);
         if (!Number.isInteger(id)) {
@@ -95,6 +98,7 @@ export function registerRoutes(app: FastifyInstance) {
 
     app.delete("/api/invoices", {
         config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+        schema: schemas.clearInvoices,
     }, async (_request, reply) => {
         const count = clearInvoices();
         return reply.send({ deleted: count });
@@ -102,6 +106,7 @@ export function registerRoutes(app: FastifyInstance) {
 
     app.post("/api/extract", {
         config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+        schema: schemas.extract,
     }, async (request, reply) => {
         const data = await request.file();
         if (!data) return reply.status(400).send({ error: "No file uploaded." });
@@ -133,5 +138,5 @@ export function registerRoutes(app: FastifyInstance) {
         }
     })
 
-    app.get("/api/quota", async () => ({ remaining: remainingQuota() }));
+    app.get("/api/quota", { schema: schemas.quota }, async () => ({ remaining: remainingQuota() }));
 }
