@@ -354,17 +354,26 @@ th {
     margin: 0;
     padding: 0;
     list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .flag {
-    font-size: 13px;
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
 .flag-error {
+    background: #fce8e6;
     color: var(--red);
 }
 
 .flag-warning {
+    background: #fbf1dc;
     color: var(--amber);
 }
 
