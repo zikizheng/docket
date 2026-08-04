@@ -126,6 +126,7 @@ export function registerRoutes(app: FastifyInstance) {
         if (!consumeExtractionQuota(request.ip)) {
             return reply.status(429).send({
                 error: "The daily scanning limit for this demo has been reached — enter the details manually, or try again tomorrow.",
+                code: "QUOTA_EXCEEDED",
             });
         }
         try {

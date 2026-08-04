@@ -38,7 +38,9 @@ export async function extractInvoice(file: File): Promise<ExtractionResult> {
     if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
         const message = payload.error ?? `Extraction failed (${res.status})`;
-        throw res.status === 429 ? new QuotaExhaustedError(message) : new Error(message);
+        // Only the daily quota (tagged QUOTA_EXCEEDED) should lock the upload UI — a plain
+        // per-minute rate limit is also a 429, but is transient and shouldn't look the same.
+        throw payload.code === "QUOTA_EXCEEDED" ? new QuotaExhaustedError(message) : new Error(message);
     }
 
     const header = res.headers.get("X-Quota-Remaining");

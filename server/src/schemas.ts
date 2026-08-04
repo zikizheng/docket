@@ -49,6 +49,13 @@ const error = {
     required: ["error"],
 } as const;
 
+/** Like error, but tagged so the client can tell a real quota exhaustion apart from a plain rate-limit 429. */
+const quotaError = {
+    type: "object",
+    properties: { error: { type: "string" }, code: { type: "string" } },
+    required: ["error", "code"],
+} as const;
+
 export const schemas = {
     createInvoice: {
         response: { 200: storedInvoice, 400: error, 429: error, 502: error, 500: error },
@@ -65,7 +72,7 @@ export const schemas = {
         },
     },
     extract: {
-        response: { 200: draftInvoice, 400: error, 415: error, 413: error, 429: error, 502: error },
+        response: { 200: draftInvoice, 400: error, 415: error, 413: error, 429: quotaError, 502: error },
     },
     quota: {
         response: {
