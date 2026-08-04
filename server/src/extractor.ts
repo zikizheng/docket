@@ -73,19 +73,37 @@ export function mapExpenseResponse(response: any): DraftInvoice {
      * correct — a cleanly-printed decoy elsewhere on the page (e.g. a legal entity name quoted
      * in payment instructions) can out-score the real header, so position wins by default,
      * and confidence only breaks in when the topmost candidate is too garbled to trust at all.
+     *
+     * Position alone isn't enough either: a logo mark (e.g. stylised initials inside a badge
+     * graphic) can sit higher on the page than the real name printed below it. A real business
+     * name tends to be printed more than once on an invoice (letterhead, footer, payment
+     * details); a logo mark is normally a one-off. So candidates are first ranked by how many
+     * times their (normalised) text recurs among the trustworthy candidates, and only ties are
+     * broken by position.
      */
     const bestFieldByPosition = (types: string[]): { text: string; confidence: number } | null => {
         const top = (f: any): number => f?.ValueDetection?.Geometry?.BoundingBox?.Top ?? Number.POSITIVE_INFINITY;
         const confidence = (f: any): number => f?.ValueDetection?.Confidence ?? 0;
+        const normalise = (f: any): string => f.ValueDetection.Text.trim().toLowerCase().replace(/\s+/g, " ");
 
         for (const type of types) {
             const matches = summary.filter((f) => f?.Type?.Text === type && f?.ValueDetection?.Text?.trim());
             if (matches.length === 0) continue;
 
             const trustworthy = matches.filter((f) => confidence(f) >= MIN_TRUSTWORTHY_CONFIDENCE);
-            const ranked = trustworthy.length > 0
-                ? trustworthy.sort((a, b) => top(a) - top(b))
-                : matches.sort((a, b) => confidence(b) - confidence(a));
+
+            let ranked;
+            if (trustworthy.length > 0) {
+                const occurrences = new Map<string, number>();
+                for (const f of trustworthy) occurrences.set(normalise(f), (occurrences.get(normalise(f)) ?? 0) + 1);
+
+                ranked = trustworthy.sort((a, b) => {
+                    const byOccurrences = occurrences.get(normalise(b))! - occurrences.get(normalise(a))!;
+                    return byOccurrences !== 0 ? byOccurrences : top(a) - top(b);
+                });
+            } else {
+                ranked = matches.sort((a, b) => confidence(b) - confidence(a));
+            }
 
             return { text: ranked[0].ValueDetection.Text.trim(), confidence: confidence(ranked[0]) };
         }

@@ -101,6 +101,22 @@ test("prefers the vendor name nearest the top of the page over a higher-confiden
     assert.equal(mapExpenseResponse(response).supplierName, "Riverside Physio Clinic");
 });
 
+test("prefers a vendor name repeated across the page over a higher, one-off logo mark", () => {
+    // Reproduces a real Textract response: a circular logo badge containing stylised initials
+    // ("SW.") sat higher on the page than the actual business name, which was printed twice
+    // (letterhead and footer). Position alone would have picked the logo mark.
+    const response = {
+        ExpenseDocuments: [{
+            SummaryFields: [
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "Sunrise Wellness Clinic", Confidence: 99.70, Geometry: { BoundingBox: { Top: 0.820 } } } },
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "Sunrise Wellness Clinic", Confidence: 96.21, Geometry: { BoundingBox: { Top: 0.050 } } } },
+                { Type: { Text: "VENDOR_NAME" }, ValueDetection: { Text: "sw.", Confidence: 93.97, Geometry: { BoundingBox: { Top: 0.042 } } } },
+            ],
+        }],
+    };
+    assert.equal(mapExpenseResponse(response).supplierName, "Sunrise Wellness Clinic");
+});
+
 test("falls back to confidence when the topmost vendor-name candidate is too low to trust", () => {
     const response = {
         ExpenseDocuments: [{
