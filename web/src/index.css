@@ -597,3 +597,7 @@ input[type=number]::-webkit-outer-spin-button {
     color: var(--text);
     font-weight: 600;
 }
+
+.bottom-spacer {
+    height: 5vh;
+}

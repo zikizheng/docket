@@ -365,6 +365,7 @@ export default function App() {
                 </div>
                 </>
             )}
+                <div className="bottom-spacer" aria-hidden="true" />
                 </div>
             </section>
         </main>
